@@ -65,6 +65,8 @@ const contextMenu = ref<{
   episodeIndex: ''
 })
 
+let vpsEndpointFlag = import.meta.env.VITE_VPS_ENDPOINT_FLAG || false
+
 // 创建一个Helper函数来处理SweetAlert2样式问题
 const setupSwalButtonStyles = () => {
   // 全局添加一次样式就足够了
@@ -623,7 +625,7 @@ const searchSite = async (site: ResourceSite, index: number) => {
 
     // 根据环境选择正确的 API 端点
     // 本地开发环境使用 /api/search, Cloudflare/Vercel 环境使用 /functions/api/search
-    const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || vpsEndpointFlag 
       ? '/api/search' 
       : '/functions/api/search'
 
@@ -667,11 +669,18 @@ const searchSite = async (site: ResourceSite, index: number) => {
 
   } catch (error: any) {
     console.error(`搜索失败 (${site.remark}):`, error)
+    
     searchResults.value[index] = `
       <div class="error-message p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-900/30">
         <p class="font-medium">搜索出错:</p>
         <p class="mt-1">${error.message}</p>
         <p class="mt-2 text-sm">请检查网络连接或稍后重试</p>
+        <button 
+          class="mt-3 px-4 py-2 bg-primary-light dark:bg-primary-dark text-white rounded-lg hover:bg-primary-light/90 dark:hover:bg-primary-dark/90 transition-colors shadow-sm"
+          onclick="document.dispatchEvent(new CustomEvent('retrySearch', {detail: ${index}}))"
+        >
+          重试
+        </button>
       </div>
     `
 
@@ -867,6 +876,12 @@ const tryProxySearch = async (originalUrl: string, site: ResourceSite, index: nu
         <p class="font-medium">代理搜索失败:</p>
         <p class="mt-1">${error instanceof Error ? error.message : '未知错误'}</p>
         <p class="mt-2 text-sm">请检查网络连接或稍后重试</p>
+        <button 
+          class="mt-3 px-4 py-2 bg-primary-light dark:bg-primary-dark text-white rounded-lg hover:bg-primary-light/90 dark:hover:bg-primary-dark/90 transition-colors shadow-sm"
+          onclick="document.dispatchEvent(new CustomEvent('retrySearch', {detail: ${index}}))"
+        >
+          重试
+        </button>
       </div>
     `
 
@@ -895,7 +910,7 @@ const handleResultClick = async (url: string, customKeyword?: string) => {
     }
 
     // 根据环境选择正确的 API 端点
-    const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || vpsEndpointFlag 
       ? '/api/search' 
       : '/functions/api/search'
     
@@ -1035,6 +1050,21 @@ const handleResultClick = async (url: string, customKeyword?: string) => {
       <div class="error-message p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border border-red-100 dark:border-red-900/30">
         <p class="font-medium">获取剧集链接失败:</p>
         <p class="mt-1">${error instanceof Error ? error.message : '未知错误'}</p>
+        <p class="mt-2 text-sm">请检查网络连接或稍后重试</p>
+        <div class="mt-3 flex space-x-3">
+          <button 
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"
+            onclick="document.dispatchEvent(new CustomEvent('goBack'))"
+          >
+            返回
+          </button>
+          <button 
+            class="px-4 py-2 bg-primary-light dark:bg-primary-dark text-white rounded-lg hover:bg-primary-light/90 dark:hover:bg-primary-dark/90 transition-colors shadow-sm"
+            onclick="document.dispatchEvent(new CustomEvent('retryResultClick', {detail: '${url}'}))"
+          >
+            重试
+          </button>
+        </div>
       </div>
     `
 
@@ -1429,7 +1459,7 @@ const applyTag = (key: string) => {
         `
         
         // 根据环境选择正确的 API 端点
-        const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        const apiEndpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || vpsEndpointFlag 
           ? '/api/search' 
           : '/functions/api/search'
         
@@ -1553,6 +1583,12 @@ const applyTag = (key: string) => {
               <p class="font-medium">加载剧集列表失败:</p>
               <p class="mt-1">${error instanceof Error ? error.message : '未知错误'}</p>
               <p class="mt-2 text-sm">请检查网络连接或稍后重试</p>
+              <button 
+                class="mt-3 px-4 py-2 bg-primary-light dark:bg-primary-dark text-white rounded-lg hover:bg-primary-light/90 dark:hover:bg-primary-dark/90 transition-colors shadow-sm"
+                onclick="document.dispatchEvent(new CustomEvent('retryApplyTag', {detail: '${key}'}))"
+              >
+                重试
+              </button>
             </div>
           `
         })
@@ -1606,6 +1642,12 @@ const applyTag = (key: string) => {
         <p class="font-medium">应用标签失败:</p>
         <p class="mt-1">${e instanceof Error ? e.message : '未知错误'}</p>
         <p class="mt-2 text-sm">请检查网络连接或稍后重试</p>
+        <button 
+          class="mt-3 px-4 py-2 bg-primary-light dark:bg-primary-dark text-white rounded-lg hover:bg-primary-light/90 dark:hover:bg-primary-dark/90 transition-colors shadow-sm"
+          onclick="document.dispatchEvent(new CustomEvent('retryApplyTag', {detail: '${key}'}))"
+        >
+          重试
+        </button>
       </div>
     `
   }
@@ -1775,10 +1817,20 @@ const handleDeleteTag = (event: CustomEvent) => {
   }
 }
 
+// 添加一个新方法用于在搜索时切换标签
+const switchToFirstNonTagTab = () => {
+  // 如果当前是标签页，切换到第一个非标签页
+  if (showTagsTab.value) {
+    showTagsTab.value = false
+    activeTab.value = 0
+  }
+}
+
 // 暴露搜索方法和标签列表方法给父组件
 defineExpose({
   performSearch,
-  showTagsListDialog
+  showTagsListDialog,
+  switchToFirstNonTagTab
 })
 
 // 处理右键菜单显示
@@ -1927,6 +1979,9 @@ onMounted(() => {
   document.addEventListener('applyTag', handleApplyTag as EventListener)
   document.addEventListener('viewTag', handleViewTag as EventListener)
   document.addEventListener('deleteTag', handleDeleteTag as EventListener)
+  document.addEventListener('retrySearch', handleRetrySearch as EventListener)
+  document.addEventListener('retryResultClick', handleRetryResultClick as EventListener)
+  document.addEventListener('retryApplyTag', handleRetryApplyTag as EventListener)
   
   // 添加鼠标右键事件委托
   document.addEventListener('click', (e) => {
@@ -1940,6 +1995,7 @@ onMounted(() => {
   })
 })
 
+// 移除事件监听
 onUnmounted(() => {
   document.removeEventListener('toggleSort', toggleSort)
   document.removeEventListener('goBack', handleGoBack)
@@ -1947,7 +2003,39 @@ onUnmounted(() => {
   document.removeEventListener('applyTag', handleApplyTag as EventListener)
   document.removeEventListener('viewTag', handleViewTag as EventListener)
   document.removeEventListener('deleteTag', handleDeleteTag as EventListener)
+  document.removeEventListener('retrySearch', handleRetrySearch as EventListener)
+  document.removeEventListener('retryResultClick', handleRetryResultClick as EventListener)
+  document.removeEventListener('retryApplyTag', handleRetryApplyTag as EventListener)
 })
+
+// 处理重试搜索事件
+const handleRetrySearch = (event: CustomEvent) => {
+  const index = event.detail
+  if (typeof index === 'number') {
+    const site = props.sites.filter(s => s.active)[index]
+    if (site) {
+      // 只重新搜索当前站点
+      isLoading.value[index] = true
+      searchSite(site, index)
+    }
+  }
+}
+
+// 处理重试点击详情页事件
+const handleRetryResultClick = (event: CustomEvent) => {
+  const url = event.detail
+  if (url) {
+    handleResultClick(url)
+  }
+}
+
+// 处理重试应用标签事件
+const handleRetryApplyTag = (event: CustomEvent) => {
+  const key = event.detail
+  if (key) {
+    applyTag(key)
+  }
+}
 </script>
 
 <template>
